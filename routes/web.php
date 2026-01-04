@@ -57,9 +57,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // --- AREA PEMILIK (Laporan) ---
-    // Admin dan Owner boleh lihat laporan
     Route::middleware('role:admin,owner')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        // Tambahan Route Cetak Laporan
+        Route::get('/reports/print', [ReportController::class, 'print'])->name('reports.print');
     });
 
     // --- AREA OWNER (Manajemen User) ---
