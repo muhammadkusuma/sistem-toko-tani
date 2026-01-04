@@ -18,7 +18,7 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             # Masuk ke folder project di VPS
-            cd /var/www/html/nama-project
+            cd /var/www/html/sistem-toko-tani
             
             # Tarik perubahan terbaru
             git pull origin main
