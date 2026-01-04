@@ -1,0 +1,33 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main  # Ganti dengan nama branch utama Anda (master/main)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # Masuk ke folder project di VPS
+            cd /var/www/html/nama-project
+            
+            # Tarik perubahan terbaru
+            git pull origin main
+            
+            # Contoh perintah tambahan (sesuaikan dengan tech stack):
+            # npm install
+            # npm run build
+            # php artisan migrate --force
+            
+            # Restart service jika perlu (misal Nginx atau PM2)
+            # sudo systemctl reload nginx
+            # pm2 restart all
