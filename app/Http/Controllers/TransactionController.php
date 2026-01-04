@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Product;
@@ -6,8 +7,8 @@ use App\Models\ProductUnit;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -16,10 +17,7 @@ class TransactionController extends Controller
      */
     public function create()
     {
-        // Ambil semua produk beserta satuannya untuk dipilih di kasir
-        // Kita load 'units' agar kasir bisa memilih beli Eceran atau Grosir
         $products = Product::with('units')->where('stock', '>', 0)->get();
-
         return view('transactions.create', compact('products'));
     }
 
@@ -28,35 +26,52 @@ class TransactionController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validasi Input
         $request->validate([
-            'cart'         => 'required|array', // Data keranjang dikirim sebagai array JSON
-            'total_amount' => 'required|numeric',
-            'cash_amount'  => 'required|numeric|gte:total_amount', // Uang tunai >= Total
+            'cart'        => 'required', // Jangan pakai 'array' karena formatnya JSON String
+            'total_amount'=> 'required|numeric',
+            'cash_amount' => 'required|numeric|gte:total_amount',
         ]);
+
+        // 2. Decode Data Keranjang dari JSON ke Array PHP
+        $cartData = json_decode($request->cart, true);
+
+        // Cek validitas data keranjang
+        if (!$cartData || !is_array($cartData) || count($cartData) < 1) {
+            return back()->with('error', 'Keranjang belanja kosong atau data error.');
+        }
 
         DB::beginTransaction();
         try {
-            // 1. Buat Header Transaksi
+            // 3. Buat Header Transaksi
             $transaction = Transaction::create([
-                'user_id'       => Auth::id() ?? 1, // Jika belum login pakai user ID 1 (dummy)
+                'user_id'       => Auth::id() ?? 1,
                 'invoice_no'    => 'INV-' . date('YmdHis') . '-' . rand(100, 999),
                 'total_amount'  => $request->total_amount,
                 'cash_amount'   => $request->cash_amount,
                 'change_amount' => $request->cash_amount - $request->total_amount,
             ]);
 
-            // 2. Proses Setiap Item di Keranjang
-            foreach ($request->cart as $item) {
-                // Ambil data unit yang dipilih
-                $unit    = ProductUnit::find($item['unit_id']);
+            // 4. Proses Setiap Item & POTONG STOK
+            foreach ($cartData as $item) {
+                // Ambil data produk & unit terbaru dari DB untuk keamanan
                 $product = Product::find($item['product_id']);
+                $unit    = ProductUnit::find($item['unit_id']);
 
-                if (! $unit || ! $product) {
-                    continue;
+                if (!$product || !$unit) continue;
+
+                // Hitung total quantity dalam satuan dasar (Base Unit)
+                // Contoh: Beli 2 Karung (1 karung = 50kg) => 2 * 50 = 100kg
+                $qtyDeduction = $item['qty'] * $unit->conversion_factor;
+
+                // Cek Stok Cukup?
+                if ($product->stock < $qtyDeduction) {
+                    throw new \Exception("Stok {$product->name} tidak cukup! (Sisa: {$product->stock} {$product->base_unit})");
                 }
 
-                // Hitung Subtotal
-                $subtotal = $unit->price * $item['qty'];
+                // Kurangi Stok
+                $product->stock = $product->stock - $qtyDeduction;
+                $product->save();
 
                 // Simpan Detail Transaksi
                 TransactionDetail::create([
@@ -66,15 +81,8 @@ class TransactionController extends Controller
                     'qty'                 => $item['qty'],
                     'price'               => $unit->price,
                     'conversion_snapshot' => $unit->conversion_factor,
-                    'subtotal'            => $subtotal,
+                    'subtotal'            => $unit->price * $item['qty'],
                 ]);
-
-                // 3. POTONG STOK
-                // Rumus: Stok Berkurang = Jumlah Beli * Faktor Konversi Unit
-                // Contoh: Beli 2 Karung (1 karung = 50kg). Maka stok berkurang 100kg.
-                $qtyDeduction   = $item['qty'] * $unit->conversion_factor;
-                $product->stock = $product->stock - $qtyDeduction;
-                $product->save();
             }
 
             DB::commit();

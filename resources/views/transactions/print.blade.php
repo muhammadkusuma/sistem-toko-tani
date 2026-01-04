@@ -1,104 +1,139 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk #{{ $transaction->invoice_no }}</title>
     <style>
+        /* Pengaturan Kertas (PENTING) */
+        @page {
+            size: 58mm auto; /* Lebar 58mm, Tinggi menyesuaikan */
+            margin: 0;       /* Hapus margin browser */
+        }
+
+        /* Tampilan Dasar */
         body {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            max-width: 300px;
-            margin: 0 auto;
-            padding: 10px;
+            font-family: 'Courier New', Courier, monospace; /* Font struk jadul */
+            font-size: 10px;    /* Ukuran font standar struk */
+            width: 58mm;        /* Paksa lebar body */
+            margin: 0;          /* Reset margin */
+            padding: 5px;       /* Sedikit jarak aman */
+            background: #fff;
+            color: #000;
         }
 
-        .header {
-            text-align: center;
-            border-bottom: 1px dashed #000;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
+        /* Reset Heading */
+        h2, p, h3 {
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
         }
 
-        .footer {
-            text-align: center;
+        /* Garis Pemisah Putus-putus */
+        .dashed-line {
             border-top: 1px dashed #000;
-            padding-top: 10px;
-            margin-top: 10px;
+            margin: 5px 0;
+            width: 100%;
         }
 
-        .item {
+        /* Layout Flexbox untuk Rata Kanan-Kiri */
+        .flex-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            width: 100%;
         }
 
-        .bold {
-            font-weight: bold;
-        }
+        /* Helper Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: bold; }
+        .mt-1 { margin-top: 5px; }
+        .mb-1 { margin-bottom: 5px; }
 
-        .right {
-            text-align: right;
-        }
-
+        /* Sembunyikan elemen layar saat diprint */
         @media print {
-            .no-print {
-                display: none;
-            }
+            .no-print { display: none !important; }
+            body { padding: 0; margin: 0; width: 100%; }
         }
     </style>
 </head>
+<body>
 
-<body onload="window.print()">
-
-    <div class="header">
-        <h2 style="margin:0;">TOKO TANI MAKMUR</h2>
-        <p style="margin:0;">Jl. Raya Pertanian No. 123</p>
-        <p style="margin:5px 0;">{{ $transaction->created_at->format('d/m/Y H:i') }}</p>
-        <p style="margin:0;">No: {{ $transaction->invoice_no }}</p>
-        <p style="margin:0;">Kasir: {{ $transaction->user->name ?? 'Umum' }}</p>
+    <div class="text-center mb-1">
+        <h2 style="font-size: 14px; font-weight: bold;">TOKO TANI MAKMUR</h2>
+        <p>Jl. Raya Pertanian No. 123</p>
+        <p>Telp: 0812-3456-7890</p>
     </div>
 
-    <div class="items">
-        @foreach ($transaction->details as $detail)
-            <div style="margin-bottom: 2px;">
-                <strong>{{ $detail->product->name }}</strong>
-            </div>
-            <div class="item">
-                <span>{{ $detail->qty + 0 }} {{ $detail->unit->unit_name }} x
-                    {{ number_format($detail->price, 0) }}</span>
-                <span>{{ number_format($detail->subtotal, 0) }}</span>
-            </div>
-        @endforeach
+    <div class="dashed-line"></div>
+
+    <div>
+        <div class="flex-row">
+            <span>Tgl:</span>
+            <span>{{ $transaction->created_at->format('d/m/y H:i') }}</span>
+        </div>
+        <div class="flex-row">
+            <span>No:</span>
+            <span>#{{ substr($transaction->invoice_no, -6) }}</span> </div>
+        <div class="flex-row">
+            <span>Kasir:</span>
+            <span>{{ substr($transaction->user->name ?? 'Umum', 0, 10) }}</span>
+        </div>
     </div>
 
-    <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+    <div class="dashed-line"></div>
 
-    <div class="item bold">
+    @foreach($transaction->details as $detail)
+        <div class="mb-1">
+            <div class="font-bold">{{ $detail->product->name }}</div>
+            <div class="flex-row">
+                <span>{{ $detail->qty + 0 }} {{ $detail->unit->unit_name ?? '' }} x {{ number_format($detail->price, 0, ',', '.') }}</span>
+                <span>{{ number_format($detail->subtotal, 0, ',', '.') }}</span>
+            </div>
+        </div>
+    @endforeach
+
+    <div class="dashed-line"></div>
+
+    <div class="flex-row font-bold" style="font-size: 12px;">
         <span>TOTAL</span>
-        <span>{{ number_format($transaction->total_amount, 0) }}</span>
+        <span>{{ number_format($transaction->total_amount, 0, ',', '.') }}</span>
     </div>
-    <div class="item">
+    <div class="flex-row">
         <span>TUNAI</span>
-        <span>{{ number_format($transaction->cash_amount, 0) }}</span>
+        <span>{{ number_format($transaction->cash_amount, 0, ',', '.') }}</span>
     </div>
-    <div class="item">
+    <div class="flex-row">
         <span>KEMBALI</span>
-        <span>{{ number_format($transaction->change_amount, 0) }}</span>
+        <span>{{ number_format($transaction->change_amount, 0, ',', '.') }}</span>
     </div>
 
-    <div class="footer">
+    <div class="dashed-line"></div>
+
+    <div class="text-center mt-1" style="font-size: 9px;">
         <p>Terima Kasih & Selamat Menanam!</p>
-        <p>Barang yang dibeli tidak dapat ditukar.</p>
+        <p>Barang yg dibeli tdk dpt ditukar</p>
     </div>
 
-    <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <a href="{{ route('transactions.create') }}"
-            style="background: #000; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">Kembali
-            ke Kasir</a>
+    <div class="no-print" style="margin-top: 20px; text-align: center; border-top: 2px solid #ddd; padding-top: 10px;">
+        <p class="mb-1 text-gray-500">Tips: Pilih kertas "58mm" di pengaturan print & matikan "Header/Footer".</p>
+        
+        <button onclick="window.print()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            🖨️ Print Struk
+        </button>
+        <br><br>
+        <a href="{{ route('transactions.create') }}" style="text-decoration: none; color: #666;">
+            ← Kembali ke Kasir
+        </a>
     </div>
 
+    <script>
+        // Auto Print saat halaman dimuat
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500); // Delay sedikit biar CSS load dulu
+        }
+    </script>
 </body>
-
 </html>
