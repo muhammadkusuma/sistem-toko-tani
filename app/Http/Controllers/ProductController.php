@@ -119,11 +119,13 @@ class ProductController extends Controller
             'name'        => 'required',
             'category_id' => 'required',
             'stock'       => 'required|numeric',
+            'buy_price'   => 'required|numeric',
+            'sell_price'  => 'required|numeric', // Harga base unit
         ]);
 
         DB::beginTransaction();
         try {
-            // Update Data Induk
+            // 1. Update Data Induk
             $product->update([
                 'name'        => $request->name,
                 'category_id' => $request->category_id,
@@ -131,9 +133,29 @@ class ProductController extends Controller
                 'buy_price'   => $request->buy_price,
             ]);
 
-            // Update atau Tambah Unit Baru bisa dikembangkan di sini
-            // Untuk versi simpel, kita asumsikan user mengedit unit via menu terpisah atau logic replace all
-            // Di sini saya skip logic update complex unit agar kode tidak terlalu panjang di awal
+            // 2. Update Harga Base Unit (Unit default)
+            $product->units()->where('is_base', true)->update([
+                'price' => $request->sell_price,
+            ]);
+
+            // 3. Reset & Re-insert Satuan Tambahan
+            // Hapus semua unit NON-BASE milik produk ini
+            $product->units()->where('is_base', false)->forceDelete();
+
+            // Masukkan ulang satuan tambahan dari form (jika ada)
+            if ($request->has('more_units')) {
+                foreach ($request->more_units as $unit) {
+                    if ($unit['name'] && $unit['factor'] && $unit['price']) {
+                        ProductUnit::create([
+                            'product_id'        => $product->id,
+                            'unit_name'         => $unit['name'],
+                            'conversion_factor' => $unit['factor'],
+                            'price'             => $unit['price'],
+                            'is_base'           => false,
+                        ]);
+                    }
+                }
+            }
 
             DB::commit();
             return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui!');

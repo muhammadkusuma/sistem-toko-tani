@@ -5,125 +5,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk #{{ $transaction->invoice_no }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Courier New', Courier, monospace;
-            /* Font struk */
-            background-color: #f3f4f6;
+            font-size: 12px;
+            max-width: 300px;
+            margin: 0 auto;
+            padding: 10px;
         }
 
-        .ticket {
-            width: 300px;
-            /* Lebar standar kertas thermal 80mm */
-            margin: 20px auto;
-            background-color: white;
-            padding: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
         }
 
-        /* CSS Khusus saat Print */
+        .footer {
+            text-align: center;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .right {
+            text-align: right;
+        }
+
         @media print {
-            body {
-                background-color: white;
-            }
-
-            .ticket {
-                box-shadow: none;
-                margin: 0;
-                width: 100%;
-            }
-
             .no-print {
-                display: none !important;
+                display: none;
             }
         }
     </style>
 </head>
 
-<body>
+<body onload="window.print()">
 
-    <div class="ticket">
-        <div class="text-center mb-4">
-            <h1 class="text-xl font-bold">TOKO TANI MAKMUR</h1>
-            <p class="text-xs">Jl. Raya Pertanian No. 123</p>
-            <p class="text-xs">Telp: 0812-3456-7890</p>
-        </div>
-
-        <div class="border-b-2 border-dashed border-gray-400 mb-2"></div>
-
-        <div class="text-xs mb-2">
-            <div class="flex justify-between">
-                <span>No: {{ $transaction->invoice_no }}</span>
-                <span>{{ date('d/m/Y H:i', strtotime($transaction->created_at)) }}</span>
-            </div>
-            <div>Kasir: {{ $transaction->user->name ?? 'Admin' }}</div>
-        </div>
-
-        <div class="border-b-2 border-dashed border-gray-400 mb-2"></div>
-
-        <div class="text-xs mb-4 space-y-2">
-            @foreach ($transaction->details as $detail)
-                <div>
-                    <div class="font-bold">{{ $detail->product->name }}</div>
-                    <div class="flex justify-between">
-                        <span>
-                            {{ $detail->qty + 0 }} {{ $detail->unit->unit_name }} x
-                            {{ number_format($detail->price, 0, ',', '.') }}
-                        </span>
-                        <span class="font-bold">
-                            {{ number_format($detail->subtotal, 0, ',', '.') }}
-                        </span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-
-        <div class="border-b-2 border-dashed border-gray-400 mb-2"></div>
-
-        <div class="text-sm font-bold">
-            <div class="flex justify-between mb-1">
-                <span>Total</span>
-                <span>Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between mb-1 text-xs font-normal">
-                <span>Tunai</span>
-                <span>Rp {{ number_format($transaction->cash_amount, 0, ',', '.') }}</span>
-            </div>
-            <div class="flex justify-between mb-1 text-xs font-normal">
-                <span>Kembali</span>
-                <span>Rp {{ number_format($transaction->change_amount, 0, ',', '.') }}</span>
-            </div>
-        </div>
-
-        <div class="border-b-2 border-dashed border-gray-400 my-4"></div>
-
-        <div class="text-center text-xs mb-6">
-            <p>Terima Kasih</p>
-            <p>Barang yang dibeli tidak dapat ditukar/dikembalikan</p>
-        </div>
-
-        <div class="no-print flex flex-col space-y-2">
-            <button onclick="window.print()" class="bg-gray-800 text-white py-2 rounded hover:bg-black transition">
-                Cetak Struk
-            </button>
-            <a href="{{ route('transactions.create') }}"
-                class="block text-center bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 transition">
-                Transaksi Baru
-            </a>
-            <a href="{{ route('products.index') }}"
-                class="block text-center text-gray-500 text-xs hover:underline mt-2">
-                Kembali ke Dashboard
-            </a>
-        </div>
+    <div class="header">
+        <h2 style="margin:0;">TOKO TANI MAKMUR</h2>
+        <p style="margin:0;">Jl. Raya Pertanian No. 123</p>
+        <p style="margin:5px 0;">{{ $transaction->created_at->format('d/m/Y H:i') }}</p>
+        <p style="margin:0;">No: {{ $transaction->invoice_no }}</p>
+        <p style="margin:0;">Kasir: {{ $transaction->user->name ?? 'Umum' }}</p>
     </div>
 
-    <script>
-        window.onload = function() {
-            // Uncomment baris di bawah jika ingin otomatis print saat halaman dibuka
-            // window.print();
-        }
-    </script>
+    <div class="items">
+        @foreach ($transaction->details as $detail)
+            <div style="margin-bottom: 2px;">
+                <strong>{{ $detail->product->name }}</strong>
+            </div>
+            <div class="item">
+                <span>{{ $detail->qty + 0 }} {{ $detail->unit->unit_name }} x
+                    {{ number_format($detail->price, 0) }}</span>
+                <span>{{ number_format($detail->subtotal, 0) }}</span>
+            </div>
+        @endforeach
+    </div>
+
+    <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+
+    <div class="item bold">
+        <span>TOTAL</span>
+        <span>{{ number_format($transaction->total_amount, 0) }}</span>
+    </div>
+    <div class="item">
+        <span>TUNAI</span>
+        <span>{{ number_format($transaction->cash_amount, 0) }}</span>
+    </div>
+    <div class="item">
+        <span>KEMBALI</span>
+        <span>{{ number_format($transaction->change_amount, 0) }}</span>
+    </div>
+
+    <div class="footer">
+        <p>Terima Kasih & Selamat Menanam!</p>
+        <p>Barang yang dibeli tidak dapat ditukar.</p>
+    </div>
+
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <a href="{{ route('transactions.create') }}"
+            style="background: #000; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">Kembali
+            ke Kasir</a>
+    </div>
+
 </body>
 
 </html>

@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            // Tambahkan kolom role di sini (default: kasir)
+            $table->string('role')->default('cashier');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
