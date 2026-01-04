@@ -64,6 +64,13 @@
                                         <i class="fa-solid fa-chart-line mr-1"></i> Laporan
                                     </a>
                                 @endif
+
+                                @if (Auth::user()->role == 'owner')
+                                    <a href="{{ route('users.index') }}"
+                                        class="{{ request()->routeIs('users.*') ? 'bg-emerald-800' : 'hover:bg-emerald-600' }} px-3 py-2 rounded-md text-sm font-medium transition">
+                                        <i class="fa-solid fa-users-gear mr-1"></i> Kelola User
+                                    </a>
+                                @endif
                             </div>
                         @endauth
                     </div>

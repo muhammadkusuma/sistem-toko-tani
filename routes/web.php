@@ -50,6 +50,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,cashier')->group(function () {
         Route::get('/pos', [TransactionController::class, 'create'])->name('transactions.create');
         Route::post('/pos', [TransactionController::class, 'store'])->name('transactions.store');
+    });
+
+    Route::middleware('role:admin,owner')->group(function () {
         Route::get('/transactions/{id}/print', [TransactionController::class, 'show'])->name('transactions.show');
     });
 
@@ -57,6 +60,12 @@ Route::middleware('auth')->group(function () {
     // Admin dan Owner boleh lihat laporan
     Route::middleware('role:admin,owner')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    });
+
+    // --- AREA OWNER (Manajemen User) ---
+    // Hanya Owner yang boleh kelola user
+    Route::middleware('role:owner')->group(function () {
+        Route::resource('users', \App\Http\Controllers\UserController::class);
     });
 
 });
